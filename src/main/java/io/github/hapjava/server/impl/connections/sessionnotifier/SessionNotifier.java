@@ -1,4 +1,4 @@
-package io.github.hapjava.server.impl.connections.session;
+package io.github.hapjava.server.impl.connections.sessionnotifier;
 
 public interface SessionNotifier {
     void userRegistered(String user);

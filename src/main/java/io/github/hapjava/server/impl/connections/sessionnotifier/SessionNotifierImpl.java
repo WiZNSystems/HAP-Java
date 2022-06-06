@@ -1,4 +1,4 @@
-package io.github.hapjava.server.impl.connections.session;
+package io.github.hapjava.server.impl.connections.sessionnotifier;
 
 import java.util.ArrayList;
 import java.util.HashMap;

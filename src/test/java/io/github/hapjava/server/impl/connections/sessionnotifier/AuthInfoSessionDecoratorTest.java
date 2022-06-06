@@ -1,4 +1,4 @@
-package io.github.hapjava.server.impl.connections.session;
+package io.github.hapjava.server.impl.connections.sessionnotifier;
 
 import io.github.hapjava.server.HomekitAuthInfo;
 import org.junit.Test;

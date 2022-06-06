@@ -2,7 +2,7 @@ package io.github.hapjava.server.impl.connections;
 
 import io.github.hapjava.server.HomekitAuthInfo;
 import io.github.hapjava.server.impl.HomekitRegistry;
-import io.github.hapjava.server.impl.connections.session.SessionNotifier;
+import io.github.hapjava.server.impl.connections.sessionnotifier.SessionNotifier;
 import io.github.hapjava.server.impl.http.HomekitClientConnection;
 import io.github.hapjava.server.impl.http.HomekitClientConnectionFactory;
 import io.github.hapjava.server.impl.http.HttpResponse;
