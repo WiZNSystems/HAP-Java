@@ -73,7 +73,7 @@ public class HomekitRoot {
         this.category = category;
         this.registry = new HomekitRegistry(label);
 
-        this.notifier = new SessionNotifierImpl();
+        this.notifier = new SessionNotifierImpl(authInfo.getUsersCount());
         this.authInfo = new AuthInfoSessionDecorator(authInfo, notifier);
     }
 
@@ -153,24 +153,26 @@ public class HomekitRoot {
     public void start() {
         started = true;
         registry.reset();
-        CompletableFuture<Void> future = webHandler
-                .start(
-                        new HomekitClientConnectionFactoryImpl(authInfo, registry, subscriptions, advertiser, notifier))
-                .thenAccept(
-                        port -> {
-                            try {
-                                refreshAuthInfo();
-                                advertiser.advertise(
-                                        label,
-                                        category,
-                                        authInfo.getMac(),
-                                        port,
-                                        configurationIndex,
-                                        authInfo.getSetupId());
-                            } catch (Exception e) {
-                                throw new RuntimeException(e);
-                            }
-                        });
+        CompletableFuture<Void> future =
+                webHandler
+                        .start(
+                                new HomekitClientConnectionFactoryImpl(
+                                        authInfo, registry, subscriptions, advertiser, notifier))
+                        .thenAccept(
+                                port -> {
+                                    try {
+                                        refreshAuthInfo();
+                                        advertiser.advertise(
+                                                label,
+                                                category,
+                                                authInfo.getMac(),
+                                                port,
+                                                configurationIndex,
+                                                authInfo.getSetupId());
+                                    } catch (Exception e) {
+                                        throw new RuntimeException(e);
+                                    }
+                                });
         future.join();
     }
 
