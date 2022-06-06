@@ -2,7 +2,9 @@ package io.github.hapjava.server.impl.connections.session;
 
 import org.junit.Before;
 import org.junit.Test;
+import org.mockito.ArgumentCaptor;
 
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.AdditionalMatchers.gt;
 import static org.mockito.Mockito.*;
 
@@ -73,7 +75,7 @@ public class SessionNotifierTest {
     @Test
     public void notifiesWithSumOfActiveAndInactiveAlwaysLessThanRegistered() {
         notifier.addListener(listener);
-        
+
         byte[] readKey = new byte[]{(byte) 0x96, (byte) 0x9c, (byte) 0xcb};
         byte[] writeKey = new byte[]{0x7a, 0x31, 0x51};
         notifier.setActive(readKey, writeKey);
@@ -88,6 +90,30 @@ public class SessionNotifierTest {
         verify(listener, never()).countUpdated(eq(1), gt(1), gt(1));
     }
 
+    @Test
+    public void notifiesWithActiveCountNeverMoreThanRegistered() {
+        notifier.addListener(listener);
+
+        byte[] readKey = new byte[]{(byte) 0x96, (byte) 0x9c, (byte) 0xcb};
+        byte[] writeKey = new byte[]{0x7a, 0x31, 0x51};
+
+        notifier.setActive(readKey, writeKey);
+
+        byte[] readKey2 = new byte[]{(byte) 0x36, (byte) 0x92, (byte) 0x3b};
+        byte[] writeKey2 = new byte[]{0x7d, 0x41, 0x53};
+
+        notifier.setActive(readKey2, writeKey2);
+
+        ArgumentCaptor<Integer> registered = ArgumentCaptor.forClass(Integer.class);
+        ArgumentCaptor<Integer> active = ArgumentCaptor.forClass(Integer.class);
+        ArgumentCaptor<Integer> inactive = ArgumentCaptor.forClass(Integer.class);
+
+        verify(listener, atLeastOnce()).countUpdated(registered.capture(), active.capture(), inactive.capture());
+
+        assertThat(registered.getAllValues().get(1)).isEqualTo(1);
+        assertThat(active.getAllValues().get(1)).isLessThanOrEqualTo(1);
+        assertThat(inactive.getAllValues().get(1)).isGreaterThanOrEqualTo(0).isLessThanOrEqualTo(1);
+    }
 
     private void registerUser() {
         notifier.userRegistered("pre added User");
