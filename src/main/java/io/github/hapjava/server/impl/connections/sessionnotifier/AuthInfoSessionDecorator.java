@@ -12,6 +12,8 @@ public class AuthInfoSessionDecorator implements HomekitAuthInfo {
     public AuthInfoSessionDecorator(HomekitAuthInfo info, SessionNotifier notifier) {
         this.info = info;
         this.notifier = notifier;
+        int registeredCount = info.getUsersCount();
+        notifier.registeredDeviceCount(registeredCount);
     }
 
     @Override
@@ -59,5 +61,10 @@ public class AuthInfoSessionDecorator implements HomekitAuthInfo {
     @Override
     public boolean hasUser() {
         return info.hasUser();
+    }
+
+    @Override
+    public int getUsersCount() {
+        return info.getUsersCount();
     }
 }
