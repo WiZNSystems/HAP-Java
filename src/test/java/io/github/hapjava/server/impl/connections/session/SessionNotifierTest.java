@@ -3,6 +3,7 @@ package io.github.hapjava.server.impl.connections.session;
 import org.junit.Before;
 import org.junit.Test;
 
+import static org.mockito.AdditionalMatchers.gt;
 import static org.mockito.Mockito.*;
 
 public class SessionNotifierTest {
@@ -67,6 +68,26 @@ public class SessionNotifierTest {
 
         verify(listener).countUpdated(1, 0, 0);
     }
+
+
+    @Test
+    public void notifiesWithSumOfActiveAndInactiveAlwaysLessThanRegistered() {
+        notifier.addListener(listener);
+        
+        byte[] readKey = new byte[]{(byte) 0x96, (byte) 0x9c, (byte) 0xcb};
+        byte[] writeKey = new byte[]{0x7a, 0x31, 0x51};
+        notifier.setActive(readKey, writeKey);
+        notifier.setInactive(readKey, writeKey);
+
+        byte[] readKey2 = new byte[]{(byte) 0x95, (byte) 0x9d, (byte) 0xeb};
+        byte[] writeKey2 = new byte[]{0x72, 0x3f, 0x41};
+
+        notifier.setActive(readKey2, writeKey2);
+
+        verify(listener, never()).countUpdated(1, 1, 1);
+        verify(listener, never()).countUpdated(eq(1), gt(1), gt(1));
+    }
+
 
     private void registerUser() {
         notifier.userRegistered("pre added User");

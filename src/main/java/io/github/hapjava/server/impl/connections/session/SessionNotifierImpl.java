@@ -4,6 +4,8 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.Map;
 
+import static java.lang.Integer.min;
+
 public class SessionNotifierImpl implements SessionNotifier {
 
     private final ArrayList<SessionNotificationListener> listeners = new ArrayList<>();
@@ -51,8 +53,21 @@ public class SessionNotifierImpl implements SessionNotifier {
     }
 
     private void notifyListeners() {
+        int registeredDevicesCount = this.registeredDevices.size();
+
+        // activeCount should never be more than registeredDevices
+        // if it is there are definitely some broken connections,
+        // but we don't know which one are those, so can't remove them or move to inactive connections
+        int activeDevicesCount = min(activeDevices.size(), registeredDevicesCount);
+
+        // inActiveCount should never be more than registeredDevices - activeDevices.size
+        // if it is there are definitely some broken connections,
+        // but unfortunately we don't know which are those
+        int inActiveDevicesCount = min(inActiveDevices.size(), registeredDevicesCount - activeDevicesCount);
+
+
         for (SessionNotificationListener listener : listeners) {
-            listener.countUpdated(registeredDevices.size(), activeDevices.size(), inActiveDevices.size());
+            listener.countUpdated(registeredDevicesCount, activeDevicesCount, inActiveDevicesCount);
         }
     }
 }
