@@ -17,12 +17,13 @@ public class SessionNotifierTest {
     @Before
     public void setUp() {
         registerUser();
+        notifier.addListener(listener);
+
+        clearInvocations(listener);
     }
 
     @Test
     public void notifiesOnRegistrationStateChange() {
-        notifier.addListener(listener);
-
         notifier.userRegistered("user");
         verify(listener).countUpdated(2, 0, 0);
 
@@ -35,8 +36,6 @@ public class SessionNotifierTest {
         byte[] readKey = new byte[]{(byte) 0x96, (byte) 0x9c, (byte) 0xcb};
         byte[] writeKey = new byte[]{0x7a, 0x31, 0x51};
 
-        notifier.addListener(listener);
-
         notifier.setActive(readKey, writeKey);
         notifier.setInactive(readKey, writeKey);
         notifier.setActive(readKey, writeKey);
@@ -47,8 +46,6 @@ public class SessionNotifierTest {
     public void notifiesWhenDeviceBecomesInActive() {
         byte[] readKey = new byte[]{(byte) 0x96, (byte) 0x9c, (byte) 0xcb};
         byte[] writeKey = new byte[]{0x7a, 0x31, 0x51};
-
-        notifier.addListener(listener);
 
         notifier.setActive(readKey, writeKey);
         notifier.setInactive(readKey, writeKey);
@@ -62,8 +59,6 @@ public class SessionNotifierTest {
         byte[] readKey = new byte[]{(byte) 0x96, (byte) 0x9c, (byte) 0xcb};
         byte[] writeKey = new byte[]{0x7a, 0x31, 0x51};
 
-        notifier.addListener(listener);
-
         notifier.setActive(readKey, writeKey);
         notifier.setInactive(readKey, writeKey);
         notifier.removeDevice(readKey, writeKey);
@@ -74,8 +69,6 @@ public class SessionNotifierTest {
 
     @Test
     public void notifiesWithSumOfActiveAndInactiveAlwaysLessThanRegistered() {
-        notifier.addListener(listener);
-
         byte[] readKey = new byte[]{(byte) 0x96, (byte) 0x9c, (byte) 0xcb};
         byte[] writeKey = new byte[]{0x7a, 0x31, 0x51};
         notifier.setActive(readKey, writeKey);
@@ -92,8 +85,6 @@ public class SessionNotifierTest {
 
     @Test
     public void notifiesWithActiveCountNeverMoreThanRegistered() {
-        notifier.addListener(listener);
-
         byte[] readKey = new byte[]{(byte) 0x96, (byte) 0x9c, (byte) 0xcb};
         byte[] writeKey = new byte[]{0x7a, 0x31, 0x51};
 
@@ -113,6 +104,19 @@ public class SessionNotifierTest {
         assertThat(registered.getAllValues().get(1)).isEqualTo(1);
         assertThat(active.getAllValues().get(1)).isLessThanOrEqualTo(1);
         assertThat(inactive.getAllValues().get(1)).isGreaterThanOrEqualTo(0).isLessThanOrEqualTo(1);
+    }
+
+    @Test
+    public void notifiesNewListeners() {
+        byte[] readKey = new byte[]{(byte) 0x96, (byte) 0x9c, (byte) 0xcb};
+        byte[] writeKey = new byte[]{0x7a, 0x31, 0x51};
+
+        notifier.setActive(readKey, writeKey);
+
+        SessionNotifier.SessionNotificationListener listener2 = mock(SessionNotifier.SessionNotificationListener.class);
+        notifier.addListener(listener2);
+
+        verify(listener2).countUpdated(1, 1, 0);
     }
 
     private void registerUser() {

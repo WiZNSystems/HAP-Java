@@ -29,6 +29,7 @@ public class SessionNotifierImpl implements SessionNotifier {
     @Override
     public void addListener(SessionNotificationListener listener) {
         listeners.add(listener);
+        notifyListeners();
     }
 
     @Override
@@ -64,7 +65,6 @@ public class SessionNotifierImpl implements SessionNotifier {
         // if it is there are definitely some broken connections,
         // but unfortunately we don't know which are those
         int inActiveDevicesCount = min(inActiveDevices.size(), registeredDevicesCount - activeDevicesCount);
-
 
         for (SessionNotificationListener listener : listeners) {
             listener.countUpdated(registeredDevicesCount, activeDevicesCount, inActiveDevicesCount);
