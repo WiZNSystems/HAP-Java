@@ -10,6 +10,7 @@ public class SessionNotifierImpl implements SessionNotifier {
 
     private final ArrayList<String> registeredDevices = new ArrayList<>();
     private final Map<byte[], byte[]> activeDevices = new HashMap<>();
+    private final Map<byte[], byte[]> inActiveDevices = new HashMap<>();
 
     @Override
     public void userRegistered(String user) {
@@ -31,17 +32,20 @@ public class SessionNotifierImpl implements SessionNotifier {
     @Override
     public void setActive(byte[] readKey, byte[] writeKey) {
         activeDevices.put(readKey, writeKey);
+        inActiveDevices.remove(readKey, writeKey);
         notifyListeners();
     }
 
     @Override
     public void setInactive(byte[] readKey, byte[] writeKey) {
-
+        inActiveDevices.put(readKey, writeKey);
+        activeDevices.remove(readKey, writeKey);
+        notifyListeners();
     }
 
     private void notifyListeners() {
         for (SessionNotificationListener listener : listeners) {
-            listener.countUpdated(registeredDevices.size(), activeDevices.size(), 0);
+            listener.countUpdated(registeredDevices.size(), activeDevices.size(), inActiveDevices.size());
         }
     }
 }
