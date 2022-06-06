@@ -74,8 +74,10 @@ class NettyHomekitHttpService {
   }
 
   public void shutdown() {
-    workerGroup.shutdownGracefully();
-    bossGroup.shutdownGracefully();
+    Future<?> workerGroups = workerGroup.shutdownGracefully();
+    Future<?> bossGroups = bossGroup.shutdownGracefully();
+    workerGroups.awaitUninterruptibly();
+    bossGroups.awaitUninterruptibly();
   }
 
   public void resetConnections() {
