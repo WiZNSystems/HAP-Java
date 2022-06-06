@@ -10,19 +10,24 @@ public class SessionNotifierImpl implements SessionNotifier {
 
     private final ArrayList<SessionNotificationListener> listeners = new ArrayList<>();
 
-    private final ArrayList<String> registeredDevices = new ArrayList<>();
+    private int registeredUsersCount = 0;
+
     private final Map<byte[], byte[]> activeDevices = new HashMap<>();
     private final Map<byte[], byte[]> inActiveDevices = new HashMap<>();
 
+    public SessionNotifierImpl(int alreadyRegisteredUsers) {
+        registeredUsersCount = alreadyRegisteredUsers;
+    }
+
     @Override
-    public void userRegistered(String user) {
-        registeredDevices.add(user);
+    public void userRegistered() {
+        registeredUsersCount++;
         notifyListeners();
     }
 
     @Override
-    public void userRemoved(String user) {
-        registeredDevices.remove(user);
+    public void userRemoved() {
+        registeredUsersCount--;
         notifyListeners();
     }
 
@@ -54,20 +59,20 @@ public class SessionNotifierImpl implements SessionNotifier {
     }
 
     private void notifyListeners() {
-        int registeredDevicesCount = this.registeredDevices.size();
-
         // activeCount should never be more than registeredDevices
         // if it is there are definitely some broken connections,
-        // but we don't know which one are those, so can't remove them or move to inactive connections
-        int activeDevicesCount = min(activeDevices.size(), registeredDevicesCount);
+        // but we don't know which one are those, so can't remove them or move to inactive
+        // connections
+        int activeDevicesCount = min(activeDevices.size(), registeredUsersCount);
 
         // inActiveCount should never be more than registeredDevices - activeDevices.size
         // if it is there are definitely some broken connections,
         // but unfortunately we don't know which are those
-        int inActiveDevicesCount = min(inActiveDevices.size(), registeredDevicesCount - activeDevicesCount);
+        int inActiveDevicesCount =
+                min(inActiveDevices.size(), registeredUsersCount - activeDevicesCount);
 
         for (SessionNotificationListener listener : listeners) {
-            listener.countUpdated(registeredDevicesCount, activeDevicesCount, inActiveDevicesCount);
+            listener.countUpdated(registeredUsersCount, activeDevicesCount, inActiveDevicesCount);
         }
     }
 }

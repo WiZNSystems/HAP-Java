@@ -10,24 +10,22 @@ import static org.mockito.Mockito.*;
 
 public class SessionNotifierTest {
 
-    private final SessionNotifierImpl notifier = new SessionNotifierImpl();
-    private final SessionNotifierImpl.SessionNotificationListener listener = mock(SessionNotifierImpl.SessionNotificationListener.class);
-
+    private final SessionNotifierImpl notifier = new SessionNotifierImpl(1);
+    private final SessionNotifierImpl.SessionNotificationListener listener =
+            mock(SessionNotifierImpl.SessionNotificationListener.class);
 
     @Before
     public void setUp() {
-        registerUser();
         notifier.addListener(listener);
-
         clearInvocations(listener);
     }
 
     @Test
     public void notifiesOnRegistrationStateChange() {
-        notifier.userRegistered("user");
+        notifier.userRegistered();
         verify(listener).countUpdated(2, 0, 0);
 
-        notifier.userRemoved("user");
+        notifier.userRemoved();
         verify(listener).countUpdated(1, 0, 0);
     }
 
@@ -66,7 +64,6 @@ public class SessionNotifierTest {
         verify(listener).countUpdated(1, 0, 0);
     }
 
-
     @Test
     public void notifiesWithSumOfActiveAndInactiveAlwaysLessThanRegistered() {
         byte[] readKey = new byte[]{(byte) 0x96, (byte) 0x9c, (byte) 0xcb};
@@ -99,7 +96,8 @@ public class SessionNotifierTest {
         ArgumentCaptor<Integer> active = ArgumentCaptor.forClass(Integer.class);
         ArgumentCaptor<Integer> inactive = ArgumentCaptor.forClass(Integer.class);
 
-        verify(listener, atLeastOnce()).countUpdated(registered.capture(), active.capture(), inactive.capture());
+        verify(listener, atLeastOnce())
+                .countUpdated(registered.capture(), active.capture(), inactive.capture());
 
         assertThat(registered.getAllValues().get(1)).isEqualTo(1);
         assertThat(active.getAllValues().get(1)).isLessThanOrEqualTo(1);
@@ -113,14 +111,10 @@ public class SessionNotifierTest {
 
         notifier.setActive(readKey, writeKey);
 
-        SessionNotifier.SessionNotificationListener listener2 = mock(SessionNotifier.SessionNotificationListener.class);
+        SessionNotifier.SessionNotificationListener listener2 =
+                mock(SessionNotifier.SessionNotificationListener.class);
         notifier.addListener(listener2);
 
         verify(listener2).countUpdated(1, 1, 0);
     }
-
-    private void registerUser() {
-        notifier.userRegistered("pre added User");
-    }
-
 }

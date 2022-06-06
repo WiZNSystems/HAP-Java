@@ -1,9 +1,9 @@
 package io.github.hapjava.server.impl.connections.sessionnotifier;
 
 public interface SessionNotifier {
-    void userRegistered(String user);
+    void userRegistered();
 
-    void userRemoved(String user);
+    void userRemoved();
 
     void addListener(SessionNotificationListener listener);
 
