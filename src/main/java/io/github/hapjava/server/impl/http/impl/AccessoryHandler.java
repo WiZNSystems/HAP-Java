@@ -43,6 +43,7 @@ class AccessoryHandler extends SimpleChannelInboundHandler<FullHttpRequest> {
   @Override
   public void channelInactive(ChannelHandlerContext ctx) throws Exception {
     LOGGER.trace("Terminated HomeKit connection from " + ctx.channel().remoteAddress().toString());
+    this.connection.close();
     super.channelInactive(ctx);
   }
 
