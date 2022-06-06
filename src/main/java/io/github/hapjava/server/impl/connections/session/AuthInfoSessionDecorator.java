@@ -9,7 +9,7 @@ public class AuthInfoSessionDecorator implements HomekitAuthInfo {
     private final HomekitAuthInfo info;
     private final SessionNotifier notifier;
 
-    AuthInfoSessionDecorator(HomekitAuthInfo info, SessionNotifier notifier) {
+    public AuthInfoSessionDecorator(HomekitAuthInfo info, SessionNotifier notifier) {
         this.info = info;
         this.notifier = notifier;
     }

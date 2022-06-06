@@ -7,6 +7,9 @@ import io.github.hapjava.server.HomekitAuthInfo;
 import io.github.hapjava.server.HomekitWebHandler;
 import io.github.hapjava.server.impl.connections.HomekitClientConnectionFactoryImpl;
 import io.github.hapjava.server.impl.connections.SubscriptionManager;
+import io.github.hapjava.server.impl.connections.session.AuthInfoSessionDecorator;
+import io.github.hapjava.server.impl.connections.session.SessionNotifier;
+import io.github.hapjava.server.impl.connections.session.SessionNotifierImpl;
 import io.github.hapjava.server.impl.jmdns.JmdnsHomekitAdvertiser;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -39,6 +42,8 @@ public class HomekitRoot {
     private boolean started = false;
     private int configurationIndex = 1;
 
+    private final SessionNotifier notifier;
+
     HomekitRoot(
             String label, HomekitWebHandler webHandler, InetAddress host, HomekitAuthInfo authInfo)
             throws IOException {
@@ -64,10 +69,12 @@ public class HomekitRoot {
             throws IOException {
         this.advertiser = advertiser;
         this.webHandler = webHandler;
-        this.authInfo = authInfo;
         this.label = label;
         this.category = category;
         this.registry = new HomekitRegistry(label);
+
+        this.notifier = new SessionNotifierImpl();
+        this.authInfo = new AuthInfoSessionDecorator(authInfo, notifier);
     }
 
     HomekitRoot(
@@ -148,7 +155,7 @@ public class HomekitRoot {
         registry.reset();
         CompletableFuture<Void> future = webHandler
                 .start(
-                        new HomekitClientConnectionFactoryImpl(authInfo, registry, subscriptions, advertiser))
+                        new HomekitClientConnectionFactoryImpl(authInfo, registry, subscriptions, advertiser, notifier))
                 .thenAccept(
                         port -> {
                             try {
@@ -219,5 +226,9 @@ public class HomekitRoot {
 
     HomekitRegistry getRegistry() {
         return registry;
+    }
+
+    public SessionNotifier getNotifier() {
+        return notifier;
     }
 }
