@@ -49,23 +49,10 @@ public class AuthInfoSessionDecoratorTest {
 
         InOrder inOrder = Mockito.inOrder(sessionNotifier, mockAuthInfo);
         inOrder.verify(mockAuthInfo).createUser("user", publicKey);
-        inOrder.verify(sessionNotifier).userRegistered("user");
+        inOrder.verify(sessionNotifier).userRegistered();
 
         info.removeUser("user");
         inOrder.verify(mockAuthInfo).removeUser("user");
-        inOrder.verify(sessionNotifier).userRemoved("user");
-    }
-
-    @Test
-    public void callsSessionNotifierOnInitiation() {
-        final SessionNotifier sessionNotifier2 = mock(SessionNotifier.class);
-        final HomekitAuthInfo mockAuthInfo2 = mock(HomekitAuthInfo.class);
-
-        when(mockAuthInfo2.getUsersCount()).thenReturn(1);
-
-        final AuthInfoSessionDecorator info2 =
-                new AuthInfoSessionDecorator(mockAuthInfo2, sessionNotifier2);
-
-        verify(sessionNotifier2).registeredDeviceCount(1);
+        inOrder.verify(sessionNotifier).userRemoved();
     }
 }
