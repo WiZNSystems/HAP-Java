@@ -11,6 +11,8 @@ public interface SessionNotifier {
 
     void setInactive(byte[] readKey, byte[] writeKey);
 
+    void removeDevice(byte[] readKey, byte[] writeKey);
+
     public interface SessionNotificationListener {
         void countUpdated(int registeredDevices, int activeDevices, int inActiveDevices);
     }

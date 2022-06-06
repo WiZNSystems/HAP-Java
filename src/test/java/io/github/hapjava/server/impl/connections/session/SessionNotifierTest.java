@@ -54,6 +54,20 @@ public class SessionNotifierTest {
         verify(listener, times(2)).countUpdated(1, 0, 1);
     }
 
+    @Test
+    public void notifiesWhenDeviceIsRemoved() {
+        byte[] readKey = new byte[]{(byte) 0x96, (byte) 0x9c, (byte) 0xcb};
+        byte[] writeKey = new byte[]{0x7a, 0x31, 0x51};
+
+        notifier.addListener(listener);
+
+        notifier.setActive(readKey, writeKey);
+        notifier.setInactive(readKey, writeKey);
+        notifier.removeDevice(readKey, writeKey);
+
+        verify(listener).countUpdated(1, 0, 0);
+    }
+
     private void registerUser() {
         notifier.userRegistered("pre added User");
     }

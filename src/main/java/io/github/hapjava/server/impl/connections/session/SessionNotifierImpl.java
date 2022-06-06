@@ -43,6 +43,13 @@ public class SessionNotifierImpl implements SessionNotifier {
         notifyListeners();
     }
 
+    @Override
+    public void removeDevice(byte[] readKey, byte[] writeKey) {
+        inActiveDevices.remove(readKey, writeKey);
+        activeDevices.remove(readKey, writeKey);
+        notifyListeners();
+    }
+
     private void notifyListeners() {
         for (SessionNotificationListener listener : listeners) {
             listener.countUpdated(registeredDevices.size(), activeDevices.size(), inActiveDevices.size());
