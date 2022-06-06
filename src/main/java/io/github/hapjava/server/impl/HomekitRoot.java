@@ -11,13 +11,12 @@ import io.github.hapjava.server.impl.connections.sessionnotifier.AuthInfoSession
 import io.github.hapjava.server.impl.connections.sessionnotifier.SessionNotifier;
 import io.github.hapjava.server.impl.connections.sessionnotifier.SessionNotifierImpl;
 import io.github.hapjava.server.impl.jmdns.JmdnsHomekitAdvertiser;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
-import javax.jmdns.JmDNS;
 import java.io.IOException;
 import java.net.InetAddress;
 import java.util.concurrent.CompletableFuture;
+import javax.jmdns.JmDNS;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 /**
  * Provides advertising and handling for HomeKit accessories. This class handles the advertising of
@@ -30,207 +29,205 @@ import java.util.concurrent.CompletableFuture;
  */
 public class HomekitRoot {
 
-    private static final Logger logger = LoggerFactory.getLogger(HomekitRoot.class);
-    private static final int DEFAULT_ACCESSORY_CATEGORY = HomekitAccessoryCategories.OTHER;
-    private final JmdnsHomekitAdvertiser advertiser;
-    private final HomekitWebHandler webHandler;
-    private final HomekitAuthInfo authInfo;
-    private final String label;
-    private final int category;
-    private final HomekitRegistry registry;
-    private final SubscriptionManager subscriptions = new SubscriptionManager();
-    private boolean started = false;
-    private int configurationIndex = 1;
+  private static final Logger logger = LoggerFactory.getLogger(HomekitRoot.class);
+  private static final int DEFAULT_ACCESSORY_CATEGORY = HomekitAccessoryCategories.OTHER;
+  private final JmdnsHomekitAdvertiser advertiser;
+  private final HomekitWebHandler webHandler;
+  private final HomekitAuthInfo authInfo;
+  private final String label;
+  private final int category;
+  private final HomekitRegistry registry;
+  private final SubscriptionManager subscriptions = new SubscriptionManager();
+  private boolean started = false;
+  private int configurationIndex = 1;
 
-    private final SessionNotifier notifier;
+  private final SessionNotifier notifier;
 
-    HomekitRoot(
-            String label, HomekitWebHandler webHandler, InetAddress host, HomekitAuthInfo authInfo)
-            throws IOException {
-        this(label, DEFAULT_ACCESSORY_CATEGORY, webHandler, authInfo, new JmdnsHomekitAdvertiser(host));
+  HomekitRoot(
+      String label, HomekitWebHandler webHandler, InetAddress host, HomekitAuthInfo authInfo)
+      throws IOException {
+    this(label, DEFAULT_ACCESSORY_CATEGORY, webHandler, authInfo, new JmdnsHomekitAdvertiser(host));
+  }
+
+  HomekitRoot(
+      String label,
+      int category,
+      HomekitWebHandler webHandler,
+      InetAddress host,
+      HomekitAuthInfo authInfo)
+      throws IOException {
+    this(label, category, webHandler, authInfo, new JmdnsHomekitAdvertiser(host));
+  }
+
+  HomekitRoot(
+      String label,
+      int category,
+      HomekitWebHandler webHandler,
+      HomekitAuthInfo authInfo,
+      JmdnsHomekitAdvertiser advertiser)
+      throws IOException {
+    this.advertiser = advertiser;
+    this.webHandler = webHandler;
+    this.label = label;
+    this.category = category;
+    this.registry = new HomekitRegistry(label);
+
+    this.notifier = new SessionNotifierImpl(authInfo.getUsersCount());
+    this.authInfo = new AuthInfoSessionDecorator(authInfo, notifier);
+  }
+
+  HomekitRoot(
+      String label,
+      int category,
+      HomekitWebHandler webHandler,
+      JmDNS jmdns,
+      HomekitAuthInfo authInfo)
+      throws IOException {
+    this(label, category, webHandler, authInfo, new JmdnsHomekitAdvertiser(jmdns));
+  }
+
+  HomekitRoot(String label, HomekitWebHandler webHandler, JmDNS jmdns, HomekitAuthInfo authInfo)
+      throws IOException {
+    this(
+        label, DEFAULT_ACCESSORY_CATEGORY, webHandler, authInfo, new JmdnsHomekitAdvertiser(jmdns));
+  }
+
+  /**
+   * Add an accessory to be handled and advertised by this root. Any existing HomeKit connections
+   * will be terminated to allow the clients to reconnect and see the updated accessory list. When
+   * using this for a bridge, the ID of the accessory must be greater than 1, as that ID is reserved
+   * for the Bridge itself.
+   *
+   * @param accessory to advertise and handle.
+   */
+  public void addAccessory(HomekitAccessory accessory) {
+    if (accessory.getId() <= 1 && !(accessory instanceof Bridge)) {
+      throw new IndexOutOfBoundsException(
+          "The ID of an accessory used in a bridge must be greater than 1");
     }
+    addAccessorySkipRangeCheck(accessory);
+  }
 
-    HomekitRoot(
-            String label,
-            int category,
-            HomekitWebHandler webHandler,
-            InetAddress host,
-            HomekitAuthInfo authInfo)
-            throws IOException {
-        this(label, category, webHandler, authInfo, new JmdnsHomekitAdvertiser(host));
+  /**
+   * Skips the range check. Used by {@link HomekitStandaloneAccessoryServer} as well as {@link
+   * #addAccessory(HomekitAccessory)};
+   *
+   * @param accessory to advertise and handle.
+   */
+  void addAccessorySkipRangeCheck(HomekitAccessory accessory) {
+    this.registry.add(accessory);
+    if (logger.isTraceEnabled()) {
+      accessory.getName().thenAccept(name -> logger.trace("Added accessory {}", name));
     }
-
-    HomekitRoot(
-            String label,
-            int category,
-            HomekitWebHandler webHandler,
-            HomekitAuthInfo authInfo,
-            JmdnsHomekitAdvertiser advertiser)
-            throws IOException {
-        this.advertiser = advertiser;
-        this.webHandler = webHandler;
-        this.label = label;
-        this.category = category;
-        this.registry = new HomekitRegistry(label);
-
-        this.notifier = new SessionNotifierImpl(authInfo.getUsersCount());
-        this.authInfo = new AuthInfoSessionDecorator(authInfo, notifier);
+    if (started) {
+      registry.reset();
+      webHandler.resetConnections();
     }
+  }
 
-    HomekitRoot(
-            String label,
-            int category,
-            HomekitWebHandler webHandler,
-            JmDNS jmdns,
-            HomekitAuthInfo authInfo)
-            throws IOException {
-        this(label, category, webHandler, authInfo, new JmdnsHomekitAdvertiser(jmdns));
+  /**
+   * Removes an accessory from being handled or advertised by this root. Any existing HomeKit
+   * connections will be terminated to allow the clients to reconnect and see the updated accessory
+   * list.
+   *
+   * @param accessory accessory to cease advertising and handling
+   */
+  public void removeAccessory(HomekitAccessory accessory) {
+    this.registry.remove(accessory);
+    if (logger.isTraceEnabled()) {
+      accessory.getName().thenAccept(name -> logger.trace("Removed accessory {}", name));
     }
+    if (started) {
+      registry.reset();
+      webHandler.resetConnections();
+    }
+  }
 
-    HomekitRoot(String label, HomekitWebHandler webHandler, JmDNS jmdns, HomekitAuthInfo authInfo)
-            throws IOException {
-        this(
-                label, DEFAULT_ACCESSORY_CATEGORY, webHandler, authInfo, new JmdnsHomekitAdvertiser(jmdns));
-    }
+  /**
+   * Starts advertising and handling the previously added HomeKit accessories. You should try to
+   * call this after you have used the {@link #addAccessory(HomekitAccessory)} method to add all the
+   * initial accessories you plan on advertising, as any later additions will cause the HomeKit
+   * clients to reconnect.
+   */
+  public void start() {
+    started = true;
+    registry.reset();
+    CompletableFuture<Void> future =
+        webHandler
+            .start(
+                new HomekitClientConnectionFactoryImpl(
+                    authInfo, registry, subscriptions, advertiser, notifier))
+            .thenAccept(
+                port -> {
+                  try {
+                    refreshAuthInfo();
+                    advertiser.advertise(
+                        label,
+                        category,
+                        authInfo.getMac(),
+                        port,
+                        configurationIndex,
+                        authInfo.getSetupId());
+                  } catch (Exception e) {
+                    throw new RuntimeException(e);
+                  }
+                });
+    future.join();
+  }
 
-    /**
-     * Add an accessory to be handled and advertised by this root. Any existing HomeKit connections
-     * will be terminated to allow the clients to reconnect and see the updated accessory list. When
-     * using this for a bridge, the ID of the accessory must be greater than 1, as that ID is reserved
-     * for the Bridge itself.
-     *
-     * @param accessory to advertise and handle.
-     */
-    public void addAccessory(HomekitAccessory accessory) {
-        if (accessory.getId() <= 1 && !(accessory instanceof Bridge)) {
-            throw new IndexOutOfBoundsException(
-                    "The ID of an accessory used in a bridge must be greater than 1");
-        }
-        addAccessorySkipRangeCheck(accessory);
-    }
+  /** Stops advertising and handling the HomeKit accessories. */
+  public void stop() {
+    advertiser.stop();
+    webHandler.stop();
+    subscriptions.removeAll();
+    started = false;
+  }
 
-    /**
-     * Skips the range check. Used by {@link HomekitStandaloneAccessoryServer} as well as {@link
-     * #addAccessory(HomekitAccessory)};
-     *
-     * @param accessory to advertise and handle.
-     */
-    void addAccessorySkipRangeCheck(HomekitAccessory accessory) {
-        this.registry.add(accessory);
-        if (logger.isTraceEnabled()) {
-            accessory.getName().thenAccept(name -> logger.trace("Added accessory {}", name));
-        }
-        if (started) {
-            registry.reset();
-            webHandler.resetConnections();
-        }
-    }
+  /**
+   * Refreshes auth info after it has been changed outside this library
+   *
+   * @throws IOException if there is an error in the underlying protocol, such as a TCP error
+   */
+  public void refreshAuthInfo() throws IOException {
+    advertiser.setDiscoverable(!authInfo.hasUser());
+  }
 
-    /**
-     * Removes an accessory from being handled or advertised by this root. Any existing HomeKit
-     * connections will be terminated to allow the clients to reconnect and see the updated accessory
-     * list.
-     *
-     * @param accessory accessory to cease advertising and handling
-     */
-    public void removeAccessory(HomekitAccessory accessory) {
-        this.registry.remove(accessory);
-        if (logger.isTraceEnabled()) {
-            accessory.getName().thenAccept(name -> logger.trace("Removed accessory {}", name));
-        }
-        if (started) {
-            registry.reset();
-            webHandler.resetConnections();
-        }
-    }
+  /**
+   * By default, most homekit requests require that the client be paired. Allowing unauthenticated
+   * requests can be useful for debugging, but should not be used in production.
+   *
+   * @param allow whether to allow unauthenticated requests
+   */
+  public void allowUnauthenticatedRequests(boolean allow) {
+    registry.setAllowUnauthenticatedRequests(allow);
+  }
 
-    /**
-     * Starts advertising and handling the previously added HomeKit accessories. You should try to
-     * call this after you have used the {@link #addAccessory(HomekitAccessory)} method to add all the
-     * initial accessories you plan on advertising, as any later additions will cause the HomeKit
-     * clients to reconnect.
-     */
-    public void start() {
-        started = true;
-        registry.reset();
-        CompletableFuture<Void> future =
-                webHandler
-                        .start(
-                                new HomekitClientConnectionFactoryImpl(
-                                        authInfo, registry, subscriptions, advertiser, notifier))
-                        .thenAccept(
-                                port -> {
-                                    try {
-                                        refreshAuthInfo();
-                                        advertiser.advertise(
-                                                label,
-                                                category,
-                                                authInfo.getMac(),
-                                                port,
-                                                configurationIndex,
-                                                authInfo.getSetupId());
-                                    } catch (Exception e) {
-                                        throw new RuntimeException(e);
-                                    }
-                                });
-        future.join();
+  /**
+   * By default, the bridge advertises itself at revision 1. If you make changes to the accessories
+   * you're including in the bridge after your first call to {@link start()}, you should increment
+   * this number. The behavior of the client if the configuration index were to decrement is
+   * undefined, so this implementation will not manage the configuration index by automatically
+   * incrementing - preserving this state across invocations should be handled externally.
+   *
+   * @param revision an integer, greater than or equal to one, indicating the revision of the
+   *     accessory information
+   * @throws IOException if there is an error in the underlying protocol, such as a TCP error
+   */
+  public void setConfigurationIndex(int revision) throws IOException {
+    if (revision < 1) {
+      throw new IllegalArgumentException("revision must be greater than or equal to 1");
     }
+    this.configurationIndex = revision;
+    if (this.started) {
+      advertiser.setConfigurationIndex(revision);
+    }
+  }
 
-    /**
-     * Stops advertising and handling the HomeKit accessories.
-     */
-    public void stop() {
-        advertiser.stop();
-        webHandler.stop();
-        subscriptions.removeAll();
-        started = false;
-    }
+  HomekitRegistry getRegistry() {
+    return registry;
+  }
 
-    /**
-     * Refreshes auth info after it has been changed outside this library
-     *
-     * @throws IOException if there is an error in the underlying protocol, such as a TCP error
-     */
-    public void refreshAuthInfo() throws IOException {
-        advertiser.setDiscoverable(!authInfo.hasUser());
-    }
-
-    /**
-     * By default, most homekit requests require that the client be paired. Allowing unauthenticated
-     * requests can be useful for debugging, but should not be used in production.
-     *
-     * @param allow whether to allow unauthenticated requests
-     */
-    public void allowUnauthenticatedRequests(boolean allow) {
-        registry.setAllowUnauthenticatedRequests(allow);
-    }
-
-    /**
-     * By default, the bridge advertises itself at revision 1. If you make changes to the accessories
-     * you're including in the bridge after your first call to {@link start()}, you should increment
-     * this number. The behavior of the client if the configuration index were to decrement is
-     * undefined, so this implementation will not manage the configuration index by automatically
-     * incrementing - preserving this state across invocations should be handled externally.
-     *
-     * @param revision an integer, greater than or equal to one, indicating the revision of the
-     *                 accessory information
-     * @throws IOException if there is an error in the underlying protocol, such as a TCP error
-     */
-    public void setConfigurationIndex(int revision) throws IOException {
-        if (revision < 1) {
-            throw new IllegalArgumentException("revision must be greater than or equal to 1");
-        }
-        this.configurationIndex = revision;
-        if (this.started) {
-            advertiser.setConfigurationIndex(revision);
-        }
-    }
-
-    HomekitRegistry getRegistry() {
-        return registry;
-    }
-
-    public SessionNotifier getNotifier() {
-        return notifier;
-    }
+  public SessionNotifier getNotifier() {
+    return notifier;
+  }
 }
