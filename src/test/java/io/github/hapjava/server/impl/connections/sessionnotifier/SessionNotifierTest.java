@@ -134,4 +134,23 @@ public class SessionNotifierTest {
         notifier.setActive(readKey, writeKey);
         verifyNoMoreInteractions(listener2);
     }
+
+    @Test
+    public void registersSameListenerOnlyOneTime() {
+        SessionNotifier.SessionNotificationListener listener2 =
+                mock(SessionNotifier.SessionNotificationListener.class);
+        notifier.addListener(listener2);
+        notifier.addListener(listener2);
+        notifier.addListener(listener2);
+        notifier.addListener(listener2);
+        notifier.addListener(listener2);
+        verify(listener2, times(5)).countUpdated(1, 0, 0);
+
+        byte[] readKey = new byte[]{(byte) 0x96, (byte) 0x9c, (byte) 0xcb};
+        byte[] writeKey = new byte[]{0x7a, 0x31, 0x51};
+
+        notifier.setActive(readKey, writeKey);
+
+        verify(listener2, times(1)).countUpdated(1, 1, 0);
+    }
 }

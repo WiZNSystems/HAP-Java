@@ -1,14 +1,15 @@
 package io.github.hapjava.server.impl.connections.sessionnotifier;
 
-import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.Map;
+import java.util.Set;
 
 import static java.lang.Integer.min;
 
 public class SessionNotifierImpl implements SessionNotifier {
 
-    private final ArrayList<SessionNotificationListener> listeners = new ArrayList<>();
+    private final Set<SessionNotificationListener> listeners = new HashSet<>();
 
     private int registeredUsersCount = 0;
 
