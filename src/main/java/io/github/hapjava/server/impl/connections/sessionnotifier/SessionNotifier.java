@@ -1,21 +1,21 @@
 package io.github.hapjava.server.impl.connections.sessionnotifier;
 
 public interface SessionNotifier {
-    void userRegistered();
+  void userRegistered();
 
-    void userRemoved();
+  void userRemoved();
 
-    void addListener(SessionNotificationListener listener);
+  void addListener(SessionNotificationListener listener);
 
-    void setActive(byte[] readKey, byte[] writeKey);
+  void setActive(byte[] readKey, byte[] writeKey);
 
-    void setInactive(byte[] readKey, byte[] writeKey);
+  void setInactive(byte[] readKey, byte[] writeKey);
 
-    void removeDevice(byte[] readKey, byte[] writeKey);
+  void removeDevice(byte[] readKey, byte[] writeKey);
 
-    void unregisterListener(SessionNotificationListener listener);
+  void unregisterListener(SessionNotificationListener listener);
 
-    public interface SessionNotificationListener {
-        void countUpdated(int registeredDevices, int activeDevices, int inActiveDevices);
-    }
+  public interface SessionNotificationListener {
+    void countUpdated(int registeredDevices, int activeDevices, int inActiveDevices);
+  }
 }
