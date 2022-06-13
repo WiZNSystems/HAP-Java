@@ -51,7 +51,3 @@ public class EventController {
     }
   }
 }
-
-// todo: notify about offline state
-// i.e. notify apple/controller that device went offline
-// i guess we can't here but we can when controller tries to write characteristic

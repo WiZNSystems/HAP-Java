@@ -76,18 +76,38 @@ public class CharacteristicsController {
   public HttpResponse put(HttpRequest request, HomekitClientConnection connection)
       throws Exception {
     subscriptions.batchUpdate();
+    boolean anyAccessoryOffline = false;
+    JsonArrayBuilder characteristicsIfAnyAccessoryIsOffline = Json.createArrayBuilder();
     try {
       try (ByteArrayInputStream bais = new ByteArrayInputStream(request.getBody())) {
         JsonArray jsonCharacteristics =
             Json.createReader(bais).readObject().getJsonArray("characteristics");
+
         for (JsonValue value : jsonCharacteristics) {
           JsonObject jsonCharacteristic = (JsonObject) value;
           int aid = jsonCharacteristic.getInt("aid");
           int iid = jsonCharacteristic.getInt("iid");
+
+          HomekitAccessory accessory = registry.getAccessoryById(aid);
+
           Characteristic characteristic = registry.getCharacteristics(aid).get(iid);
 
+          JsonObjectBuilder characteristicJsonObjectIfAnyAccessoryIsOffline =
+              Json.createObjectBuilder();
+
           if (jsonCharacteristic.containsKey("value")) {
-            characteristic.setValue(jsonCharacteristic.get("value"));
+            if (accessory.isOffline()) {
+              anyAccessoryOffline = true;
+              characteristicJsonObjectIfAnyAccessoryIsOffline.add("status", -70402);
+            } else {
+              characteristic.setValue(jsonCharacteristic.get("value"));
+              characteristicJsonObjectIfAnyAccessoryIsOffline.add("status", 0);
+            }
+            characteristicsIfAnyAccessoryIsOffline.add(
+                characteristicJsonObjectIfAnyAccessoryIsOffline
+                    .add("aid", aid)
+                    .add("iid", iid)
+                    .build());
           }
           if (jsonCharacteristic.containsKey("ev")
               && characteristic instanceof EventableCharacteristic) {
@@ -104,6 +124,22 @@ public class CharacteristicsController {
     } finally {
       subscriptions.completeUpdateBatch();
     }
-    return new HapJsonNoContentResponse();
+    if (anyAccessoryOffline) {
+      try (ByteArrayOutputStream baos = new ByteArrayOutputStream();
+          JsonWriter jsonWriter = Json.createWriter(baos)) {
+        jsonWriter.write(
+            Json.createObjectBuilder()
+                .add("characteristics", characteristicsIfAnyAccessoryIsOffline.build())
+                .build());
+        return new MultiStatusResponse(baos.toByteArray());
+      }
+    } else {
+      return new HapJsonNoContentResponse();
+    }
   }
 }
+
+// do i need to consider the case when  accessory is offline, and
+// The controller registers for notifications against the ”current temperature” characteristic
+// p.g. 78
+// rn, not considering
