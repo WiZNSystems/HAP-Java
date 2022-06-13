@@ -5,11 +5,7 @@ import io.github.hapjava.server.impl.connections.PendingNotification;
 import io.github.hapjava.server.impl.http.HttpResponse;
 import java.io.ByteArrayOutputStream;
 import java.util.ArrayList;
-import javax.json.Json;
-import javax.json.JsonArrayBuilder;
-import javax.json.JsonObject;
-import javax.json.JsonObjectBuilder;
-import javax.json.JsonWriter;
+import javax.json.*;
 
 public class EventController {
 
@@ -55,3 +51,7 @@ public class EventController {
     }
   }
 }
+
+// todo: notify about offline state
+// i.e. notify apple/controller that device went offline
+// i guess we can't here but we can when controller tries to write characteristic

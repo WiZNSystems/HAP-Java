@@ -88,4 +88,6 @@ public interface HomekitAccessory {
   default Service getPrimaryService() {
     return getServices().isEmpty() ? null : getServices().iterator().next();
   };
+
+  boolean isOffline();
 }

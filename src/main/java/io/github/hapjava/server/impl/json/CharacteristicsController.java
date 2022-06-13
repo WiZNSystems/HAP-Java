@@ -1,5 +1,6 @@
 package io.github.hapjava.server.impl.json;
 
+import io.github.hapjava.accessories.HomekitAccessory;
 import io.github.hapjava.characteristics.Characteristic;
 import io.github.hapjava.characteristics.EventableCharacteristic;
 import io.github.hapjava.server.impl.HomekitRegistry;
@@ -42,12 +43,18 @@ public class CharacteristicsController {
       int aid = Integer.parseInt(parts[0]);
       int iid = Integer.parseInt(parts[1]);
       JsonObjectBuilder characteristic = Json.createObjectBuilder();
+      HomekitAccessory accessory = registry.getAccessoryById(aid);
+      boolean isOffline = accessory.isOffline();
       Map<Integer, Characteristic> characteristicMap = registry.getCharacteristics(aid);
       if (!characteristicMap.isEmpty()) {
         Characteristic targetCharacteristic = characteristicMap.get(iid);
         if (targetCharacteristic != null) {
-          targetCharacteristic.supplyValue(characteristic);
-
+          if (isOffline) {
+            characteristic.add("status", -70402);
+          } else {
+            targetCharacteristic.supplyValue(characteristic);
+            characteristic.add("status", 0);
+          }
           characteristics.add(characteristic.add("aid", aid).add("iid", iid).build());
         } else {
           logger.warn(
@@ -62,7 +69,7 @@ public class CharacteristicsController {
         JsonWriter jsonWriter = Json.createWriter(baos)) {
       jsonWriter.write(
           Json.createObjectBuilder().add("characteristics", characteristics.build()).build());
-      return new HapJsonResponse(baos.toByteArray());
+      return new MultiStatusResponse(baos.toByteArray());
     }
   }
 

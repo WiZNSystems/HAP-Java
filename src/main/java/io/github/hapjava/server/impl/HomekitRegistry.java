@@ -4,12 +4,7 @@ import io.github.hapjava.accessories.HomekitAccessory;
 import io.github.hapjava.characteristics.Characteristic;
 import io.github.hapjava.services.Service;
 import io.github.hapjava.services.impl.AccessoryInformationService;
-import java.util.ArrayList;
-import java.util.Collection;
-import java.util.Collections;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -81,6 +76,10 @@ public class HomekitRegistry {
       return Collections.emptyMap();
     }
     return Collections.unmodifiableMap(characteristics);
+  }
+
+  public HomekitAccessory getAccessoryById(int aid) {
+    return accessories.get(aid);
   }
 
   public void add(HomekitAccessory accessory) {

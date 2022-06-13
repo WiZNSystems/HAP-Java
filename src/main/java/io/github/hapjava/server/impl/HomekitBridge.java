@@ -61,6 +61,11 @@ public class HomekitBridge implements Bridge {
   }
 
   @Override
+  public boolean isOffline() {
+    return false;
+  }
+
+  @Override
   public int getId() {
     return 1;
   }
